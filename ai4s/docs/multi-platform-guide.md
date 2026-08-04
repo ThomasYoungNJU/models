@@ -13,7 +13,7 @@ points described in the model's own `README.md`.
 | 2 | Huawei 华为 | Ascend 昇腾 (910B…) | CANN | `torch` + `torch_npu` | `npu` |
 | 3 | MetaX 沐曦 | GPU (C500…) | MACA | `torch` + `torch_maca` | `cuda` (via MACA) |
 | 4 | Hygon 海光 | DCU (Z100/K100…) | DTK (ROCm-compatible) | `torch` (ROCm build) | `cuda` (HIP) |
-| 5 | T-Head 平头哥 | HanGuang 含光 800 | HanGuangRT + TVM/ODLA | export → HanGuangRT | `hanguang` (runtime) |
+| 5 | T-Head 平头哥 | PPU-ZW810E | HGGC CUDA-compatible bridge | vendor `torch` build | `cuda` |
 | 6 | Moore Threads 摩尔线程 | MTT S-series | MUSA | `torch` + `torch_musa` | `musa` |
 
 > The exact package versions depend on the driver/firmware installed on your node.
@@ -189,34 +189,34 @@ bash scripts/infer.sh --device cuda --checkpoint checkpoints/best.pt
 
 ---
 
-## 5. T-Head 平头哥 HanGuang 含光 800 (HanGuangRT)
+## 5. T-Head 平头哥 PPU-ZW810E (HGGC PyTorch bridge)
 
-HanGuang 800 is an **inference** accelerator. Train the model on a GPU/NPU
-(sections 1–4, 6), then export and deploy to HanGuang for inference.
+The validated T-Head target is PPU-ZW810E. Its vendor framework exposes a
+CUDA-compatible PyTorch API and supports both training and inference. It is not
+the inference-only HanGuang 800 / HanGuangRT route described in older drafts.
 
 **Verify the device**
 
-```bash
-hg-smi                     # HanGuang device status (vendor tool)
+```python
+import torch
+assert torch.cuda.is_available()
+print(torch.cuda.get_device_name(0))
 ```
 
-**Export the trained model**
+**Install framework**
+
+Use the PPU vendor image or matching HGGC PyTorch wheels supplied for the
+installed driver. Do not replace that build with a generic CUDA wheel.
+
+**Run** — the bridge exposes device string `cuda`:
 
 ```bash
-# 1) Export to ONNX from any training platform.
-python -m src.export --checkpoint checkpoints/best.pt --to onnx --out model.onnx
-# 2) Compile ONNX → HanGuang engine with the HanGuangRT / ODLA compiler.
-hgrt-compile model.onnx --out model.hgrt
+bash scripts/train.sh --platform thead --device 0
+bash scripts/infer.sh --platform thead --device 0
 ```
 
-**Run inference** — device string `hanguang`:
-
-```bash
-bash scripts/infer.sh --device hanguang --engine model.hgrt
-```
-
-> Training on HanGuang is not supported; use it only for the inference path.
-> Keep an ONNX export step in every model so this deployment target stays available.
+> Select cards with `CUDA_VISIBLE_DEVICES`. Confirm the device name reports
+> PPU-ZW810E before starting a long job.
 
 ---
 
@@ -275,10 +275,10 @@ def resolve_device(name: str):
     if name == "musa":
         import torch_musa  # noqa: F401
         return "musa"
-    if name in ("maca", "dcu"):
+    if name in ("maca", "dcu", "thead"):
         # MACA and Hygon DCU both expose the CUDA API surface
         return "cuda"
-    return name  # "cuda", "cpu", or an exported-runtime tag like "hanguang"
+    return name  # "cuda", "cpu", or another supported backend
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default="cuda")
@@ -291,7 +291,7 @@ Guidelines:
 - Take `--device` as an argument in `train.sh` / `infer.sh`; never hard-code the backend.
 - Import the vendor plugin (`torch_npu` / `torch_musa`) lazily, only when selected.
 - Avoid CUDA-only ops/kernels; if unavoidable, provide a fallback path.
-- Keep an **ONNX export** entry point so the HanGuang inference target works.
+- Document the actual T-Head runtime used by the model; the validated PPU target uses the CUDA-compatible bridge.
 - Pin the model's own deps in `requirements.txt`, but leave `torch`/vendor plugins
   to be installed per platform (they are not portable across vendors).
 
@@ -305,11 +305,11 @@ A model is "runs on all platforms" only when every box is checked:
 - [ ] Huawei Ascend: same, with `--device npu`.
 - [ ] MetaX: same, with the MACA env + `--device cuda`.
 - [ ] Hygon DCU: same, with the DTK env + `--device cuda`.
-- [ ] T-Head HanGuang: ONNX export + `hgrt-compile` + `infer.sh --device hanguang` produce correct predictions.
+- [ ] T-Head PPU-ZW810E: `train.sh` and `infer.sh` complete with the HGGC PyTorch bridge; outputs match reference.
 - [ ] Moore Threads: same as NVIDIA, with `--device musa`.
 - [ ] `requirements.txt` installs cleanly in a fresh env on each platform.
 - [ ] The model's `README.md` documents any platform-specific caveats.
 
-> The exact command names (`hgrt-compile`, `mx-smi`, wheel index URLs, env script
+> The exact command names (`mx-smi`, wheel index URLs, env script
 > paths) come from each vendor's SDK release notes. Confirm them against the SDK
 > installed on your node before running.

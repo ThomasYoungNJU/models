@@ -1,0 +1,11 @@
+vendor/
+model/
+*.pth
+*.npy
+*.nc
+*.log
+*.txt
+__pycache__/
+*.py[cod]
+networks/20????/
+networks/deploy_*/

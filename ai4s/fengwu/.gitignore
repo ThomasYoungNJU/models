@@ -1,0 +1,30 @@
+# Runtime assets and generated outputs
+FengWu/model/
+FengWu/outputs/
+FengWu/networks/[0-9][0-9][0-9][0-9]*/
+FengWu_train/fengwu_era5/
+FengWu_train/debug_results/
+FengWu_train/deploy_results/
+logs/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Large model/data formats
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.npy
+*.nc
+*.h5
+*.hdf5
+
+# Keep the small normalization metadata tracked.
+!FengWu_train/datasets/mean_std.json
+!FengWu_train/datasets/mean_std_single.json
+

@@ -4,9 +4,15 @@ A collection of **AI for Science (AI4S)** models. This directory hosts multiple,
 
 Every model must run training **and** inference on all six supported accelerator
 families — NVIDIA, Huawei Ascend (华为昇腾), MetaX (沐曦), Hygon DCU (海光),
-T-Head HanGuang (平头哥含光), and Moore Threads (摩尔线程). See the
+T-Head PPU (平头哥), and Moore Threads (摩尔线程). See the
 [Multi-Platform User Guide](docs/multi-platform-guide.md) for detailed,
 step-by-step setup and run instructions for each.
+
+## Available models
+
+| Model | Task | Platforms |
+|---|---|---|
+| [FengWu](fengwu/README.md) | Global medium-range weather training and 40-step inference | NVIDIA H100, Huawei Ascend 910C, Hygon BW1000, MetaX C550, Moore Threads MTT S5000, T-Head PPU-ZW810E |
 
 ## Layout
 
@@ -37,8 +43,8 @@ Each model subfolder should be independently runnable and follow these guideline
 5. **Inference-ready** — provide a clear inference entry point, e.g. `scripts/infer.sh` or `python -m src.infer --checkpoint <path>`.
 6. **Weights & data** — keep large checkpoints and datasets out of git (use `.gitignore`); document where to download or how to regenerate them.
 7. **Multi-platform** — the same codebase must run on all six accelerators. Take a
-   `--device` argument (never hard-code `cuda`), keep an ONNX export path for the
-   HanGuang inference target, and confirm every item in the acceptance checklist of
+   `--device` argument (never hard-code `cuda`), document the actual vendor backend
+   used for validation, and confirm every item in the acceptance checklist of
    the [Multi-Platform User Guide](docs/multi-platform-guide.md).
 
 ## Adding a New Model

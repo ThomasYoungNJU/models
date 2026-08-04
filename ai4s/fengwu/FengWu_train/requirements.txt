@@ -1,0 +1,3 @@
+# Kept for compatibility with users entering FengWu_train directly.
+-r ../requirements.txt
+

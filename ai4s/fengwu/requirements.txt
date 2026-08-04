@@ -1,0 +1,14 @@
+# Install the vendor-provided PyTorch, torchvision and accelerator extension
+# before this file. They are intentionally not pinned here because their
+# versions must match the accelerator driver/toolkit.
+einops>=0.8.0
+h5py>=3.8
+netCDF4>=1.6
+numpy>=1.24
+pandas>=2.0
+PyYAML>=6.0
+scipy>=1.9
+timm>=0.6.11
+tqdm>=4.66
+xarray>=2023.9
+

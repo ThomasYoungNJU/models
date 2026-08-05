@@ -12,6 +12,31 @@ inference performs 40 six-hour steps (10 days) and writes one NetCDF file per
 step. The default training configuration uses FP32, activation checkpointing,
 `save_best: true` and `save_last: false`.
 
+## About FengWu
+
+"FengWu" is a global medium-range weather forecast AI large model, officially
+released in April 2023 by the Shanghai Artificial Intelligence Laboratory in
+collaboration with the University of Science and Technology of China, Shanghai
+Jiao Tong University, Nanjing University of Information Science and Technology,
+and the Institute of Atmospheric Physics of the Chinese Academy of Sciences. The
+model is built on multi-modal and multi-task deep learning methods, achieving
+for the first time effective forecasts of key atmospheric variables for more
+than 10 days at high resolution.
+
+In terms of performance, FengWu's 10-day forecast error is **10.87% lower** than
+DeepMind's GraphCast. Its effective forecast horizon reaches **10.75 days**,
+surpassing the 8.5-day upper limit of the traditional physics-based ECMWF HRES
+model. In March 2024, the upgraded **"FengWu-GHR"** increased the resolution to
+0.09°×0.09° (approximately 9 km × 9 km), a more than 7× improvement in
+granularity, further extending the effective forecast horizon to **11.25 days**
+— once again setting a new world record.
+
+With outstanding forecast accuracy and extremely low computational cost, FengWu
+provides critical support for meteorological services in agriculture, forestry,
+animal husbandry, fisheries, renewable energy, aviation, and maritime
+industries, marking the transition of AI weather forecasting from technical
+validation to operational application.
+
 For the model and scientific background, see the
 [FengWu paper](https://doi.org/10.1038/s43247-025-02502-y), the
 [official inference repository](https://github.com/OpenEarthLab/FengWu), and

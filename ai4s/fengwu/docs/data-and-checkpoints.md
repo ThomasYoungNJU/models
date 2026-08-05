@@ -4,6 +4,23 @@ Large assets are deliberately excluded from Git. A source checkout becomes
 runnable after the assets for the selected workflow are placed as described
 below.
 
+## Project data source for all platforms
+
+Before testing FengWu on any supported accelerator platform, download or copy
+the required data from the project H100 data host to the target platform using
+the approved internal transfer method. The authoritative source is:
+
+| Item | Value |
+|---|---|
+| Hostname | `p-jn-sz-cw-h1-su1-gpu02-402-12a-02u-208-118` |
+| Internal IP address | `10.6.208.118` |
+| Machine ID | `58f05dc7-4bb0-4e9f-8e7f-d8d57e2e0188` |
+| Source directory | `/public/FengwuData` |
+
+Do not commit these assets to Git. After transferring them, place or link the
+corresponding contents into the training-data and inference-asset locations
+described below.
+
 ## Inference assets
 
 The default inference asset directory is `FengWu/model`. It must contain:

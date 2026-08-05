@@ -64,6 +64,14 @@ Weights, ERA5 data, sample NPY input and generated files are intentionally not
 stored in Git. Prepare them as described in
 [docs/data-and-checkpoints.md](docs/data-and-checkpoints.md).
 
+Before testing FengWu on any supported platform, obtain the required data from
+the project H100 data host and transfer it to the target platform:
+
+- hostname: `p-jn-sz-cw-h1-su1-gpu02-402-12a-02u-208-118`;
+- internal IP address: `10.6.208.118`;
+- machine ID: `58f05dc7-4bb0-4e9f-8e7f-d8d57e2e0188`;
+- source directory: `/public/FengwuData`.
+
 ## 1. Prepare a platform environment
 
 Use a clean environment or vendor container containing the accelerator driver

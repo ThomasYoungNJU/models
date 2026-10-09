@@ -7,7 +7,8 @@ normalize_fengwu_platform() {
   local value="${1,,}"
   case "${value}" in
     auto) echo "auto" ;;
-    cuda|nvidia) echo "nvidia" ;;
+    cuda|generic_cuda) echo "auto" ;;
+    nvidia) echo "nvidia" ;;
     npu|ascend|huawei) echo "ascend" ;;
     hcu|dcu|hygon|rocm|hip) echo "hcu" ;;
     maca|metax) echo "metax" ;;
@@ -44,11 +45,27 @@ configure_fengwu_runtime() {
 
   if [[ -n "${device_backend}" && "${FENGWU_SELECTED_PLATFORM}" == "auto" ]]; then
     case "${device_backend}" in
-      cuda) FENGWU_SELECTED_PLATFORM="nvidia" ;;
+      cuda) : ;; # CUDA-compatible APIs do not identify the hardware vendor
       npu) FENGWU_SELECTED_PLATFORM="ascend" ;;
       musa) FENGWU_SELECTED_PLATFORM="mthreads" ;;
       cpu) FENGWU_SELECTED_PLATFORM="cpu" ;;
     esac
+  fi
+
+  if [[ "${FENGWU_SELECTED_PLATFORM}" == "auto" ]]; then
+    local detected
+    detected="$(FENGWU_PLATFORM=auto "${PYTHON_BIN:-${FENGWU_PYTHON:-python3}}" -c '
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "FengWu_train"))
+from utils.accelerator import _detect_runtime
+r = _detect_runtime()
+if not r.available: raise RuntimeError("No accelerator available; select cpu explicitly only for debugging")
+print(r.platform)
+' "${MODEL_ROOT}")" || return
+    FENGWU_SELECTED_PLATFORM="${detected}"
+    if [[ "${device_backend}" == "cuda" && "${detected}" != "nvidia" && "${detected}" != "hcu" && "${detected}" != "metax" && "${detected}" != "thead" ]]; then
+      echo "ERROR: cuda device specification conflicts with detected ${detected}" >&2; return 2
+    fi
   fi
 
   if [[ ! "${device_index}" =~ ^[0-9]+$ ]]; then
@@ -86,5 +103,12 @@ configure_fengwu_runtime() {
   FENGWU_PHYSICAL_DEVICE="${device_index}"
   export FENGWU_PLATFORM="${FENGWU_SELECTED_PLATFORM}"
   export FENGWU_DEVICE="${FENGWU_LOGICAL_DEVICE}"
+  # NVIDIA remains the native baseline; domestic platforms require FlagGems.
+  local default_gems=on
+  [[ "${FENGWU_SELECTED_PLATFORM}" == "nvidia" || "${FENGWU_SELECTED_PLATFORM}" == "cpu" ]] && default_gems=off
+  export FENGWU_FLAGGEMS="${FENGWU_FLAGGEMS:-${default_gems}}"
+  local default_fp32=auto
+  [[ "${FENGWU_SELECTED_PLATFORM}" == "nvidia" ]] && default_fp32=on
+  export FENGWU_FP32_ACCEL="${FENGWU_FP32_ACCEL:-${default_fp32}}"
 }
 

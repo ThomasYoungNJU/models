@@ -36,6 +36,12 @@ if [[ "${DEVICE}" == "-h" || "${DEVICE}" == "--help" ]]; then
   exit 0
 fi
 
+if [[ "${FENGWU_INSIDE_CONTAINER:-0}" == "1" ]] || { [[ -f /.dockerenv && -z "${FENGWU_CONTAINER:-}" ]] && ! command -v docker >/dev/null 2>&1; }; then
+  exec bash "${MODEL_ROOT}/scripts/train.sh" \
+    --platform "${FENGWU_PLATFORM:-auto}" \
+    --device "${DEVICE}" --foreground "${EXTRA_ARGS[@]}"
+fi
+
 CONTAINER="${FENGWU_CONTAINER:-}"
 if [[ -z "${CONTAINER}" ]]; then
   echo "ERROR: FENGWU_CONTAINER is required by the public Docker wrapper." >&2
@@ -86,11 +92,28 @@ if [[ "${RUNNING}" != "true" ]]; then
   fi
 fi
 
+DOCKER_ENV=()
+for name in FENGWU_FLAGGEMS FENGWU_FLAGGEMS_UNUSED FENGWU_FP32_ACCEL FENGWU_TIMING FENGWU_CONFIG FENGWU_OUTDIR FENGWU_DESC FENGWU_MODEL_PATH FENGWU_OUTPUT_DIR FENGWU_PREDICT_STEPS FENGWU_INIT_TIME FENGWU_PYTHON; do
+  if [[ -n "${!name:-}" ]]; then DOCKER_ENV+=(-e "${name}=${!name}"); fi
+done
+DEVICE_RUNTIME="${DEVICE}"
+# Creation-time single-device binding cannot be changed by docker exec.
+for name in MUSA_VISIBLE_DEVICES ASCEND_VISIBLE_DEVICES; do
+  bound="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "${CONTAINER}" | sed -n "s/^${name}=//p" | head -n1)"
+  requested="${DEVICE##*:}"
+  if [[ "${requested}" =~ ^[0-9]+$ && -n "${bound}" && "${bound}" != "all" && "${bound}" != "-1" && ",${bound}," != *",${requested},"* ]]; then
+    echo "ERROR: requested device ${requested} not in container binding ${bound}" >&2; exit 2
+  fi
+  if [[ "${name}" == "ASCEND_VISIBLE_DEVICES" && -n "${bound}" && "${bound}" != *,* && "${bound}" != "all" && "${bound}" != "-1" ]]; then
+    DEVICE_RUNTIME="npu:0"
+  fi
+done
+
 COMMAND=(
-  docker exec -w "${CONTAINER_ROOT}" "${CONTAINER}"
+  docker exec "${DOCKER_ENV[@]}" -w "${CONTAINER_ROOT}" "${CONTAINER}"
   bash scripts/train.sh
   --platform "${FENGWU_PLATFORM:-auto}"
-  --device "${DEVICE}"
+  --device "${DEVICE_RUNTIME}"
   --foreground
   "${EXTRA_ARGS[@]}"
 )

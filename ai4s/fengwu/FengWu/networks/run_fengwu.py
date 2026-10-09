@@ -15,7 +15,7 @@ import torch
 from tqdm import tqdm
 import xarray as xr
 
-from utils.accelerator import get_accelerator
+from utils.accelerator import get_accelerator, configure_fp32_acceleration, format_fp32_acceleration_status
 from utils.flaggems_runtime import (
     configure_flag_gems,
     format_flag_gems_status,
@@ -246,6 +246,8 @@ output_root = os.environ.get("FENGWU_OUTPUT_DIR", "./")
 
 device_index = int(os.environ.get("FENGWU_DEVICE", "0"))
 runtime = get_accelerator()
+fp32_accel_status = configure_fp32_acceleration(runtime)
+print(f"[FP32Accel] {format_fp32_acceleration_status(fp32_accel_status)}")
 
 with Timer("1. Device setup"):
     runtime.set_device(device_index)
@@ -304,7 +306,7 @@ if flag_gems_status["state"] == "pending_late_enable":
     print(f"[FlagGems] {format_flag_gems_status(flag_gems_status)}")
 
 
-with Timer("3a. Load means.npy + stds.npy (+ to accelerator)"):
+with Timer("3a. Host load means/stds + enqueue upload (completion included in 3c)"):
     means = np.load(global_means_path)[
         np.newaxis, :, np.newaxis, np.newaxis
     ]
@@ -362,7 +364,7 @@ t_loop_total = time.perf_counter() - t_loop_start
 
 print(f"\n[Timer] 4. Inference loop total: {t_loop_total:.2f}s")
 print(
-    "  -- accelerator compute (model + cat + denorm): "
+    "  -- accelerator host span (model + cat + denorm + enqueue/wait): "
     f"{t_accelerator_total:.2f}s"
 )
 print(f"  -- IO (accelerator->CPU transfer): {t_io_total:.2f}s")
@@ -383,7 +385,7 @@ with Timer("5. Post-processing (NetCDF output)"):
 _T_END = time.perf_counter()
 print(f"\n{'=' * 50}")
 print(
-    f"[Timer] TOTAL (program start to exit): "
+    f"[Timer] TOTAL (Python entry to final timing point): "
     f"{_T_END - _T_START:.2f}s"
 )
 print(f"{'=' * 50}")

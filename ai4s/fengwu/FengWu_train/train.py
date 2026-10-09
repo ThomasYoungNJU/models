@@ -4,10 +4,11 @@ _PROGRAM_START = time.perf_counter()
 import argparse
 import os
 import torch
-from utils.accelerator import get_accelerator
+from utils.accelerator import get_accelerator, configure_fp32_acceleration, format_fp32_acceleration_status
 from utils.flaggems_runtime import configure_flag_gems, format_flag_gems_status
 
 _ACCELERATOR = get_accelerator()
+_FP32_ACCEL_STATUS = configure_fp32_acceleration(_ACCELERATOR)
 _FLAGGEMS_STATUS = configure_flag_gems(_ACCELERATOR, stage="early")
 
 from utils.builder import ConfigBuilder
@@ -52,6 +53,7 @@ def subprocess_fn(args):
     seed_elapsed = _elapsed_host(phase_start)
     startup_components["seed_deterministic_logger"] = seed_elapsed
     logger.info("[Runtime] {}".format(_ACCELERATOR.summary()))
+    logger.info("[FP32Accel] {}".format(format_fp32_acceleration_status(_FP32_ACCEL_STATUS)))
     logger.info("[FlagGems] {}".format(format_flag_gems_status(_FLAGGEMS_STATUS)))
     logger.info("[Timing][startup host] seed_deterministic_logger: {:.6f}s".format(seed_elapsed))
 
@@ -139,6 +141,10 @@ def subprocess_fn(args):
     _FLAGGEMS_STATUS = configure_flag_gems(_ACCELERATOR, stage="training")
     logger.info("[FlagGems] training stage: {}".format(
         format_flag_gems_status(_FLAGGEMS_STATUS)))
+
+    fp32_current = configure_fp32_acceleration(_ACCELERATOR)
+    logger.info("[FP32Accel] training stage: {}".format(format_fp32_acceleration_status(fp32_current)))
+    logger.info("[TimingScope] host-call spans; device Events include stream idle/launch gaps, not pure kernel time")
 
     startup_to_training = _elapsed_host(_PROGRAM_START)
     logger.info("[Timing][startup host] program_start_to_training: {:.6f}s".format(
@@ -291,7 +297,7 @@ if __name__ == "__main__":
         # No timing-only accelerator synchronization here.  Successful training has
         # already reached its original loss.item()/checkpoint completion points.
         program_total = time.perf_counter() - _PROGRAM_START
-        print("[Timing][host] TOTAL (program start to completion): {:.6f}s".format(
+        print("[Timing][host] TOTAL (Python entry to final timing point): {:.6f}s".format(
             program_total), flush=True)
         if _TIMING_ENABLED and _RUN_TIMING_SUMMARY:
             after_summary = max(

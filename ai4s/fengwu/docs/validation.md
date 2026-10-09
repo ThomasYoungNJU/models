@@ -1,8 +1,12 @@
 # Six-platform validation record
 
-The table summarizes the accepted single-device unified training results for
-the checked-in FP32 baseline configuration. Loss values are recorded at the end
-of each epoch.
+## Historical deployment results (July 2026)
+
+The table records the original single-device unified training results for the
+FP32 baseline configuration. It is historical evidence, not a guarantee for the
+current exclusion lists or software environment. Loss values are recorded at
+the end of each epoch. Numerical agreement alone does not prove FlagGems was
+actually used; current launchers verify registration and device/vendor identity.
 
 | Platform | Epoch 1 train / validation | Epoch 2 train / validation | Long run |
 |---|---|---|---|
@@ -18,7 +22,7 @@ approximately the `1e-5` scale. Hygon FlagGems and native-vendor-torch checks
 also agreed at approximately `1e-6`. The T-Head 400-epoch structured loss file
 matched its previous accepted implementation byte for byte.
 
-## Inference acceptance
+## Historical inference deployment results
 
 The standard inference target is 40 autoregressive six-hour steps and 40
 NetCDF outputs.
@@ -34,6 +38,31 @@ NetCDF outputs.
 
 The timing figures are environment-specific and are not cross-vendor benchmark
 claims. They are included to make gross regressions visible.
+
+## Current deployment progress (2026-10-08)
+
+Current policies are in [platforms.md](platforms.md) and the two
+`utils/flaggems_runtime.py` files. They were checked against five actual domestic
+deployments; MetaX uses node 122 rather than the older node 101. NVIDIA remains
+the native baseline. Registration verification and prior instrumented model
+tests are separate from numerical acceptance.
+
+| Platform | Current training progress | Latest 40-step inference loop total (s) |
+|---|---|---:|
+| Huawei Ascend 910C, one Chip | Latest 400-epoch log completed; Python total 21875.011418 s | 71.76 |
+| Hygon BW1000 | Latest 400-epoch log completed; Python total 25211.732206 s | 80.98 |
+| MetaX C550, node 122 | Latest 400-epoch log completed; Python total 28889.713231 s | 104.98 |
+| Moore Threads MTT S5000 | Latest log has not yet reached its final summary; retain earlier results as historical | 186.39 |
+| T-Head PPU-ZW810E | Latest 400-epoch log completed; Python total 25064.754072 s | 89.22 |
+
+The first three training logs and all five inference logs started on October 6;
+the latest T-Head and Moore Threads training logs started on October 8. Training
+Python totals include startup, training, validation, checkpoint and final
+summary; inference loop totals exclude final NetCDF output. They are different
+timing scopes. These are observed environment-specific values, not a promise
+that a fresh public-package deployment reproduces privately patched FlagGems
+performance. Completion is not an independent numerical revalidation. This
+local synchronization did not rerun full models or change installed kernels.
 
 ## Acceptance procedure for a new environment
 

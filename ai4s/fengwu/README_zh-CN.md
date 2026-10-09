@@ -67,3 +67,17 @@ bash scripts/infer.sh \
 排除策略见 [docs/platforms.md](docs/platforms.md)，实机结果见
 [docs/validation.md](docs/validation.md)。
 
+
+## 启动校验与精度开关
+
+国产平台默认要求 FlagGems；vendor、设备键或注册不完整会报错退出，不静默回退原生 Torch/CPU。
+使用 `--flaggems off` 是原生对照，不属于项目加速验收。当前排除列表见 `docs/platforms.md`。
+
+`FENGWU_FP32_ACCEL=on/off/auto` 分别设置原生 Torch 开关为 True/False/保持并回读。
+它不能覆盖 FlagGems 内核自身的 `allow_tf32=False`，不代表全部矩阵乘都打开准32位路径。
+
+训练设备 Event 是流区间（可包含发射空隙），不是纯 kernel 时间和；推理 `Inference loop total`
+含逐步计算、等待和 D2H/NumPy，不含最终 NetCDF 写盘。详见英文平台指南。
+
+国产平台默认 `FENGWU_FP32_ACCEL=auto`，保留并记录厂商Torch原有设置，不强制开启或关闭TF32/HF32。
+是否开启准32位加速不是项目成功的必要条件；仍需满足FlagGems开启、性能和数值验收要求。

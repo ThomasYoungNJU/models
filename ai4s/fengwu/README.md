@@ -109,8 +109,9 @@ Backend-style values are also accepted:
 ```
 
 The launcher sets the vendor visibility variable and passes logical device 0
-to the model. With `--platform auto`, no vendor visibility variable is guessed;
-the selected index is passed directly to the runtime.
+to the model. With `--platform auto`, the vendor is detected from the active
+PyTorch runtime before selecting its visibility variable. `cuda:N` describes an
+API, not necessarily NVIDIA hardware. A missing accelerator fails explicitly.
 
 ## 3. Train
 
@@ -196,11 +197,12 @@ For a 40-step run, the expected result is 40 NetCDF files under:
 
 ## 5. FlagGems policy
 
-The default is `FENGWU_FLAGGEMS=auto`:
+Domestic-platform launchers default to required FlagGems (`on`); NVIDIA stays
+native (`off` in public launchers, or `auto` when invoked directly).
 
-- H100/NVIDIA uses native PyTorch and does not enable FlagGems.
-- Supported non-NVIDIA platforms enable FlagGems when it can be imported.
-- Known incompatible or numerically unsafe operators are excluded per platform.
+- Import failure, wrong vendor/device or incomplete registration stops the run.
+- MetaX defers registration until model/DataLoader construction finishes.
+- Platform-specific exclusions are checked against implementation names.
 
 Override the policy with either the launcher option or environment variable:
 
@@ -209,8 +211,8 @@ bash scripts/train.sh --platform hcu --device 0 --flaggems off
 FENGWU_FLAGGEMS=required bash scripts/infer.sh --platform ascend --device 0
 ```
 
-`required` is useful for inference acceptance because it fails instead of
-silently continuing when FlagGems is unavailable. See
+`on` and `required` require verified registration. Domestic `auto` also refuses
+import failure rather than silently claiming a native run as an accelerated one. See
 [docs/platforms.md](docs/platforms.md) for the exclusion lists.
 
 ## 6. Docker convenience launchers
@@ -229,7 +231,7 @@ entry points and should be run inside the prepared environment/container.
 The six-platform checks use FP32 (`enabled_amp: false`). H100 permits TF32 in
 its platform runtime but AMP remains disabled. The first-epoch train/validation
 loss is approximately `0.99403 / 0.31469` for the checked-in baseline dataset,
-with platform differences at roughly the `1e-5` scale. Detailed recorded
+as historical observations, not a guarantee after environment/policy changes. Detailed recorded
 results are in [docs/validation.md](docs/validation.md).
 
 Validate command resolution without running a model:
